@@ -46,7 +46,7 @@ internal class LogAdapter internal constructor(val context : Context, val compac
                 val level = logMeta[1].toInt()
                 if (level > debug_level) return
 
-                addItem(LogItem(logMeta[2].replace('\\', '\n'), level_str[level]))
+                addItem(LogItem("(" + logMeta[2] + ") " + logMeta[3].replace('\\', '\n'), level_str[level]))
             } else {
                 addHeader(BaseHeader(logMeta[1]))
             }
