@@ -73,11 +73,9 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
     private external fun executeApplication(romUri : String, romType : Int, romFd : Int, preferenceFd : Int, appFilesPath : String)
 
     /**
-     * This sets the halt flag in libskyline to the provided value, if set to true it causes libskyline to halt emulation
-     *
-     * @param halt The value to set halt to
+     * Terminate of all emulator threads and cause [emulationThread] to return
      */
-    private external fun exitGuest(halt : Boolean)
+    private external fun stopEmulation()
 
     /**
      * This sets the surface object in libskyline to the provided value, emulation is halted if set to null
@@ -138,9 +136,6 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
      */
     private external fun setTouchState(points : IntArray)
 
-    /**
-     * This initializes all of the controllers from [input] on the guest
-     */
     private fun initializeControllers() {
         for (entry in input.controllers) {
             val controller = entry.value
@@ -165,11 +160,6 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
         updateControllers()
     }
 
-    /**
-     * This executes the specified ROM, [preferenceFd] is assumed to be valid beforehand
-     *
-     * @param rom The URI of the ROM to execute
-     */
     private fun executeApplication(rom : Uri) {
         val romType = getRomFormat(rom, contentResolver).ordinal
         val romFd = contentResolver.openFileDescriptor(rom, "r")!!
@@ -184,9 +174,6 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
         emulationThread.start()
     }
 
-    /**
-     * This makes the window fullscreen then sets up [preferenceFd], sets up the performance statistics and finally calls [executeApplication] for executing the application
-     */
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState : Bundle?) {
         super.onCreate(savedInstanceState)
@@ -235,31 +222,26 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
      * This is used to stop the currently executing ROM and replace it with the one specified in the new intent
      */
     override fun onNewIntent(intent : Intent?) {
+        super.onNewIntent(intent)
         shouldFinish = false
 
-        exitGuest(true)
+        stopEmulation()
         emulationThread.join()
 
         shouldFinish = true
 
         executeApplication(intent?.data!!)
-
-        super.onNewIntent(intent)
     }
 
-    /**
-     * This is used to halt emulation entirely
-     */
     override fun onDestroy() {
+        super.onDestroy()
         shouldFinish = false
 
-        exitGuest(true)
-        emulationThread.join(1000)
+        stopEmulation()
+        emulationThread.join()
 
         vibrators.forEach { (_, vibrator) -> vibrator.cancel() }
         vibrators.clear()
-
-        super.onDestroy()
     }
 
     /**
